@@ -1,0 +1,24 @@
+乘数组合计算器 - 便携版
+
+使用说明:
+1. 直接双击"乘数组合计算器.exe"运行程序
+2. 如果程序无法运行，请安装Microsoft Visual C++ Redistributable
+
+系统要求:
+- Windows 7 及以上版本
+- 建议安装最新的Microsoft Visual C++ Redistributable
+
+故障排除:
+如果程序无法启动，请尝试:
+1. 安装Microsoft Visual C++ Redistributable (最新版本)
+2. 确保Windows系统已更新到最新版本
+3. 以管理员身份运行程序
+
+下载地址:
+Microsoft Visual C++ Redistributable:
+https://docs.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist
+
+版本信息:
+- 打包时间: 2025-06-10 22:56:58
+- Python版本: 3.12.7
+- 系统平台: Windows-11-10.0.22631-SP0
