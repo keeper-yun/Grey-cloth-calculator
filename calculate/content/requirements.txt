@@ -1,0 +1,8 @@
+# 项目依赖文件
+# 本项目只使用Python标准库，无需额外依赖
+# tkinter - Python内置GUI库
+# decimal - Python内置精确小数计算库
+# math - Python内置数学库
+
+# 打包工具依赖
+pyinstaller>=5.0 
