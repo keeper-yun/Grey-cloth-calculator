@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>坯布智能计算器</title>
+<style>
+:root{
+  --primary:#2563eb;
+  --primary-dark:#1d4ed8;
+  --bg:#eef2f7;
+  --card:#ffffff;
+  --text:#0f172a;
+  --muted:#64748b;
+  --border:#e2e8f0;
+  --green:#059669;
+  --red:#dc2626;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  padding:28px 14px 50px;
+}
+.container{max-width:480px;margin:0 auto}
+header{text-align:center;margin-bottom:18px}
+header h1{font-size:20px;letter-spacing:2px;color:var(--primary-dark)}
+header .clock{margin-top:10px;font-size:38px;font-weight:700;font-variant-numeric:tabular-nums}
+header .date{color:var(--muted);font-size:14px;margin-top:2px}
+header .sub{color:var(--muted);font-size:12px;margin-top:10px}
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:20px;
+  margin-bottom:16px;
+  box-shadow:0 1px 2px rgba(15,23,42,.05);
+}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+input[type=number]{
+  width:100%;
+  padding:10px 12px;
+  font-size:18px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  outline:none;
+  background:#f8fafc;
+  color:var(--text);
+  font-family:inherit;
+}
+input:focus{border-color:var(--primary);background:#fff}
+.range{font-size:12px;color:var(--muted);margin-top:4px;min-height:16px}
+.hint{font-size:12px;color:var(--red);min-height:16px;margin-top:2px}
+.result-box{
+  background:#f8fafc;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px 16px;
+  margin-top:14px;
+}
+.r-line{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--muted);padding:4px 0;gap:10px}
+.r-line b{color:var(--text);font-size:22px;font-weight:700;text-align:right}
+.r-hero{text-align:center;padding:4px 0 12px;border-bottom:1px dashed var(--border);margin-bottom:10px}
+.r-hero-label{font-size:13px;color:var(--muted);margin-bottom:4px}
+.r-hero-val{font-size:44px;font-weight:700;color:var(--primary-dark);line-height:1.15;letter-spacing:1px}
+.r-hero-val .unit{font-size:16px;font-weight:400;color:var(--muted);margin-left:6px}
+.r-check{border-top:1px dashed var(--border);margin-top:10px;padding-top:10px;font-size:14px;font-weight:600;color:var(--green)}
+.r-check.bad{color:var(--red);font-weight:400}
+.r-note{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.8}
+.btn{
+  width:100%;
+  margin-top:14px;
+  padding:11px 12px;
+  font-size:15px;
+  border-radius:8px;
+  border:1px solid var(--primary);
+  background:var(--primary);
+  color:#fff;
+  cursor:pointer;
+  font-family:inherit;
+}
+.btn:hover{background:var(--primary-dark)}
+footer{text-align:center;color:var(--muted);font-size:12px;line-height:1.8;margin-top:6px}
+#toast{
+  position:fixed;left:50%;bottom:30px;
+  transform:translateX(-50%) translateY(20px);
+  background:#0f172a;color:#fff;
+  padding:9px 18px;border-radius:20px;font-size:13px;
+  opacity:0;transition:.25s;pointer-events:none;
+}
+#toast.show{opacity:1;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>坯布智能计算器</h1>
+    <div class="date" id="date">----年--月--日 星期-</div>
+    <div class="clock" id="time">--:--</div>
+    <!-- <div class="sub">总金额固定 · 米数 ±20% 浮动(最多1位小数) · 单价自动调整(整数优先)</div> -->
+    <div class="sub">总金额固定 · 米数 (±20% 浮动)</div>
+  </header>
+
+  <div class="card">
+    <div class="field">
+      <label>总金额(元)</label>
+      <input type="number" id="total" min="1" step="1" inputmode="numeric" placeholder="如 1309" autofocus>
+    </div>
+    <div class="field">
+      <!-- <label>实际米数(结果在此值 ±20% 范围内,最多1位小数)</label> -->
+      <label>实际米数(±20%范围)</label>
+      <input type="number" id="meters" min="0" step="any" inputmode="decimal" placeholder="如 356.8">
+    </div>
+    <div class="range" id="range"></div>
+    <div class="hint" id="err"></div>
+    <div class="result-box">
+      <div class="r-hero">
+        <!-- <div class="r-hero-label">单价(自动算出,整数优先)</div> -->
+        <div class="r-hero-label">单价</div>
+        <div class="r-hero-val"><span id="pNum">—</span><span class="unit">元/米</span></div>
+      </div>
+      <!-- <div class="r-line"><span>调整后米数(最多1位小数)</span><b id="mOut">—</b></div> -->
+      <div class="r-line"><span>调整后米数</span><b id="mOut">—</b></div>
+      <div class="r-check" id="check">—</div>
+      <div class="r-note" id="note"></div>
+    </div>
+    <button class="btn" onclick="copyResult()">复制单价</button>
+  </div>
+
+  <footer>
+    双击本文件即可在 Windows 10/11 系统自带浏览器中打开使用<br>
+    本页面不保存任何数据,关闭即清空
+  </footer>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const totalEl = $('total'), metersEl = $('meters');
+const rangeEl = $('range'), errEl = $('err');
+const mOutEl = $('mOut'), pNumEl = $('pNum'), checkEl = $('check'), noteEl = $('note');
+let lastResult = null;
+let M0 = 0;
+
+/* ---------- 工具 ---------- */
+function fmt(n, d) {
+  return n.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: d });
+}
+/* 米数 n 为 1/10 米 的整数倍,格式化为最多1位小数 */
+function fmtM(n) { return fmt(n / 10, n % 10 === 0 ? 0 : 1); }
+/* 单价 k 为 1/100 元 的整数倍,按实际小数位显示 */
+function fmtP(k) {
+  if (k % 100 === 0) return fmt(k / 100, 0);
+  if (k % 10 === 0) return fmt(k / 100, 1);
+  return fmt(k / 100, 2);
+}
+/* 单价纯数值字符串(用于复制,不带千分位) */
+function rawP(k) {
+  if (k % 100 === 0) return String(k / 100);
+  if (k % 10 === 0) return (k / 100).toFixed(1);
+  return (k / 100).toFixed(2);
+}
+/* 单价等级:0=整数,1=一位小数,2=两位小数 */
+function priceTier(k) {
+  if (k % 100 === 0) return 0;
+  if (k % 10 === 0) return 1;
+  return 2;
+}
+
+/* ---------- 时钟 ---------- */
+function updateClock() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  $('time').textContent = pad(now.getHours()) + ':' + pad(now.getMinutes());
+  $('date').textContent = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() +
+    '日 星期' + '日一二三四五六'.charAt(now.getDay());
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ---------- 主计算 ----------
+   米数 M = n/10(n为整数,最多1位小数),单价 P = k/100(k为整数,最多2位小数)
+   要求 M × P = T,即 n × k = T × 1000
+   在 n ∈ [0.80×M0, 1.20×M0]×10 范围内枚举
+*/
+function setBlank() {
+  mOutEl.textContent = '—';
+  pNumEl.textContent = '—';
+  checkEl.textContent = '—';
+  checkEl.className = 'r-check';
+  noteEl.textContent = '';
+  rangeEl.textContent = '';
+  lastResult = null;
+}
+
+function compute() {
+  const tv = totalEl.value.trim(), mv = metersEl.value.trim();
+  const T = Number(tv);
+  M0 = Number(mv);
+  errEl.textContent = '';
+  if (tv === '' && mv === '') { setBlank(); return; }
+  if (tv === '' || !Number.isInteger(T) || T <= 0) {
+    errEl.textContent = '请输入大于 0 的整数总金额';
+    setBlank(); return;
+  }
+  if (mv === '' || !isFinite(M0) || M0 <= 0) {
+    errEl.textContent = '请输入大于 0 的实际米数';
+    setBlank(); return;
+  }
+  const N = T * 1000;
+  const nLo = Math.ceil(0.80 * M0 * 10 - 1e-9), nHi = Math.floor(1.20 * M0 * 10 + 1e-9);
+  rangeEl.textContent = '米数可在 ' + fmtM(nLo) + ' – ' + fmtM(nHi) + ' 米之间浮动(±20%)';
+  const cands = [];
+  for (let n = nLo; n <= nHi; n++) {
+    if (N % n === 0) {
+      const k = N / n;
+      cands.push({ n, k, tier: priceTier(k), dist: Math.abs(n - M0 * 10) });
+    }
+  }
+  if (cands.length) {
+    /* 优先整数单价,其次一位小数,再次两位小数;同级选米数最接近实际 */
+    cands.sort((a, b) => a.tier - b.tier || a.dist - b.dist);
+    const best = cands[0];
+    const mStr = fmtM(best.n) + ' 米';
+    const pStr = fmtP(best.k);
+    mOutEl.textContent = mStr;
+    pNumEl.textContent = pStr;
+    checkEl.textContent = '验算: ' + mStr + ' × ' + pStr + ' 元/米 = ' + fmt(T, 0) + ' 元 ✓';
+    checkEl.className = 'r-check';
+    const tierMsg = ['单价为整数 ✓(最理想)', '无整数单价组合,已选一位小数单价', '无整数/一位小数单价组合,已选两位小数单价'][best.tier];
+    let note = tierMsg;
+    if (cands.length > 1) {
+      note += '<br>其他组合: ' +
+        cands.slice(1, 6).map(c => fmtM(c.n) + ' 米 × ' + fmtP(c.k) + ' 元').join('、') +
+        (cands.length > 6 ? ' 等' : '');
+    } else {
+      note += '<br>米数偏差: 实际 ' + fmt(M0, 1) + ' 米 → 调整 ' + fmtM(best.n) + ' 米(±20%内)';
+    }
+    noteEl.innerHTML = note;
+    lastResult = { T: T, mStr: mStr, pRaw: rawP(best.k), pDisplay: pStr };
+  } else {
+    /* ±20%范围内无精确组合,找最接近的一组供参考 */
+    let bestN = null, bestK = null, bestErr = Infinity, bestDist = Infinity;
+    for (let n = nLo; n <= nHi; n++) {
+      let k = Math.round(N / n);
+      if (k < 1) k = 1;
+      const err = Math.abs(n * k - N);
+      const dist = Math.abs(n - M0 * 10);
+      if (err < bestErr || (err === bestErr && dist < bestDist)) {
+        bestErr = err; bestDist = dist; bestN = n; bestK = k;
+      }
+    }
+    mOutEl.textContent = '—';
+    pNumEl.textContent = '—';
+    checkEl.textContent = '±20% 范围内不存在符合小数位要求的组合';
+    checkEl.className = 'r-check bad';
+    noteEl.textContent = '最接近: ' + fmtM(bestN) + ' 米 × ' + fmtP(bestK) + ' 元/米 = ' +
+      fmt(bestN * bestK / 1000, 2) + ' 元(与总金额差 ' + fmt(bestErr / 1000, 2) + ' 元,可微调总金额后再试)';
+    lastResult = null;
+  }
+}
+
+/* ---------- 复制 ---------- */
+function copyText(text, doneMsg) {
+  const done = () => toast(doneMsg || '已复制');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done).catch(() => { fallbackCopy(text); done(); });
+  } else {
+    fallbackCopy(text); done();
+  }
+}
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+}
+let toastTimer = null;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function copyResult() {
+  if (!lastResult) { toast('请先输入总金额和实际米数'); return; }
+  copyText(lastResult.pRaw, '已复制单价: ' + lastResult.pDisplay);
+}
+
+/* ---------- 事件 ---------- */
+totalEl.addEventListener('input', compute);
+metersEl.addEventListener('input', compute);
+metersEl.addEventListener('keydown', e => { if (e.key === 'Enter') copyResult(); });
+
+compute();
+</script>
+</body>
+</html>
